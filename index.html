@@ -7,40 +7,40 @@
         <!--地図のCSS読み取り-->
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <style>
-            /*画面余白の最小化*/
-            body, html{
+            /* 画面余白の最小化と高さの確保 */
+            body, html {
                 margin: 0;
                 padding: 0;
+                width: 100%;
                 height: 100%;
                 overflow: hidden;
             }
-            #app-container{
-                position: relative;
+            /* 地図の最大化（絶対配置で確実に表示領域を確保） */
+            #map {
                 width: 100%;
-                height: 100%;
+                height: 100vh;
+                position: absolute;
+                top: 0;
+                left: 0;
+                z-index: 1;
             }
-            /*地図の最大化*/
-            #map{
-                height: 100%;
-                width: 100%;
-            }
-            /*地図上の半透明UI*/
-            .overlay-panel{
+            /* 地図上の半透明UI */
+            .overlay-panel {
                 position: absolute;
                 top: 20px;
                 left: 20px;
-                z-index: 1000;/*レイヤー最前面化*/
-                background: rgba(255, 255, 255, 0.85);
+                z-index: 1000;
+                background: rgba(255, 255, 255, 0.9);
                 padding: 15px 20px;
                 border-radius: 10px;
                 box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
                 font-family: sans-serif;
             }
-            .overlay-panel h1{
+            .overlay-panel h1 {
                 margin: 0 0 5px 0;
                 font-size: 18px;
             }
-            .overlay-panel p{
+            .overlay-panel p {
                 margin: 0;
                 font-size: 14px;
                 color: #555;
@@ -48,19 +48,18 @@
         </style>
     </head>
     <body>
-        <div id="app-container">
-            <!--地図上の半透明UI-->
-            <div class="overlay-panel" id="overlay-panel">
-                <h1>いまどこ powered by kinopye</h1>
-                <p id="status">位置情報を読み込んでいます...</p>
-            </div>
-            <!--地図表示-->
-            <div id="map"></div>
+        <div class="overlay-panel">
+            <h1>いまどこ powered by kinopye</h1>
+            <p id="status">データを読み込んでいます...</p>
         </div>
-        <!--Firebase読み込み-->
+
+        <!-- 地図表示エリア -->
+        <div id="map"></div>
+
+        <!-- Firebase読み込み -->
         <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-        <!--地図javascript読み込み-->
+        <!-- 地図JavaScript読み込み -->
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script>
             const firebaseConfig = {
@@ -74,27 +73,30 @@
 
             firebase.initializeApp(firebaseConfig);
             const db = firebase.firestore();
-            var latLngList = []; //位置情報リスト
-            var polyline = null; //経路表示の線
 
-            //地図の初期化
-            var map = L.map('map',{
-                center: [35.6812, 139.7671], // 初期位置（東京駅など）
-                zoom: 17, //初期ズームレベル
-                zoomControl: false // デフォルトのズームコントロールを無効化
+            // 1. まず絶対に地図を初期化する（データがなくても東京駅中心で必ず表示される）
+            const map = L.map('map', {
+                center: [35.6812, 139.7671],
+                zoom: 17,
+                zoomControl: false
             });
-            //地図拡大縮小ボタンの位置調整
+
             L.control.zoom({
                 position: 'topright'
             }).addTo(map);
-            //地図デザインの読み込み
+
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
-            db.collection("locations").document("user1").onSnapshot((doc) =>{
+            var polyline = null;
+            var currentMarker = null;
+
+            // 2. user1 ドキュメントを監視して中の path 配列を取得
+            db.collection("locations").document("user1").onSnapshot((doc) => {
                 if (!doc.exists) {
-                    document.getElementById("status").innerText = "位置情報がまだありません。";
+                    document.getElementById("status").innerText = "user1のデータがまだありません（アプリから送信してね）";
                     return;
                 }
 
@@ -102,20 +104,21 @@
                 const pathArray = data.path;
 
                 if (!pathArray || pathArray.length === 0) {
-                    document.getElementById("status").innerText = "位置情報がまだありません。";
+                    document.getElementById("status").innerText = "軌跡データが空です";
                     return;
                 }
 
+                // タイムスタンプ順（古い順）に並び替え
                 pathArray.sort((a, b) => {
                     const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
                     const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
                     return timeA - timeB;
                 });
 
-                var latLngList = [];
-                pathArray.forEach((data) => {
-                    const lat = data.latitude;
-                    const lng = data.longitude;
+                let latLngList = [];
+                pathArray.forEach((point) => {
+                    const lat = point.latitude;
+                    const lng = point.longitude;
                     if (lat && lng) {
                         latLngList.push([lat, lng]);
                     }
@@ -127,7 +130,7 @@
                     const latestLng = latest[1];
 
                     document.getElementById("status").innerText =
-                        "位置情報を受信しました。(緯度: " + latestLat.toFixed(4) + ", 経度: " + latestLng.toFixed(4) + ")";
+                        "位置情報を受信しました！(緯度: " + latestLat.toFixed(4) + ", 経度: " + latestLng.toFixed(4) + ")";
 
                     // 既存の線をクリアして全軌跡を再描画
                     if (polyline) {
@@ -135,8 +138,11 @@
                     }
                     polyline = L.polyline(latLngList, {color: 'red'}).addTo(map);
 
-                    // 最新の位置にピン
-                    L.circleMarker([latestLat, latestLng], {
+                    // 既存のピンをクリアして最新の位置にピンを立てる
+                    if (currentMarker) {
+                        map.removeLayer(currentMarker);
+                    }
+                    currentMarker = L.circleMarker([latestLat, latestLng], {
                         radius: 8,
                         fillColor: "#00bfff",
                         color: "#ffffff",
@@ -147,36 +153,10 @@
 
                     map.setView([latestLat, latestLng], 17);
                 }
+            }, (error) => {
+                document.getElementById("status").innerText = "エラー: " + error.message;
+                console.error(error);
             });
-    .where("userId", "==", "user1") 
-    .onSnapshot((snapshot) => {
-        if (snapshot.empty) {
-            document.getElementById("status").innerText = "位置情報が見つかりませんでした。";
-            return;
-        }
-
-        var docs = [];
-        snapshot.forEach((doc) => {
-            const data = doc.data();
-            docs.push(data);
-        });
-
-        // タイムスタンプ順（古い順）に綺麗に並び替える
-        docs.sort((a, b) => {
-            const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
-            const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
-            return timeA - timeB;
-        });
-
-        var latLngList = [];
-        docs.forEach((data) => {
-            const lat = data.latitude;
-            const lng = data.longitude;
-            if (lat && lng) {
-                latLngList.push([lat, lng]);
-            }
-        });
-    });
         </script>
     </body>
 </html>
