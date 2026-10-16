@@ -79,9 +79,18 @@
 
             //地図の初期化
             var map = L.map('map',{
+                center: [35.6812, 139.7671], // 初期位置（東京駅など）
                 zoom: 17, //初期ズームレベル
                 zoomControl: false // デフォルトのズームコントロールを無効化
             });
+            //地図拡大縮小ボタンの位置調整
+            L.control.zoom({
+                position: 'topright'
+            }).addTo(map);
+            //地図デザインの読み込み
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
 
             db.collection("locations")
     .where("userId", "==", "user1") 
@@ -93,7 +102,8 @@
 
         var docs = [];
         snapshot.forEach((doc) => {
-            docs.push(doc.data());
+            const data = doc.data();
+            docs.push(data);
         });
 
         // タイムスタンプ順（古い順）に綺麗に並び替える
@@ -139,14 +149,6 @@
             map.setView([latestLat, latestLng], 17);
         }
     });
-            //地図拡大縮小ボタンの位置調整
-            L.control.zoom({
-                position: 'topright'
-            }).addTo(map);
-            //地図デザインの読み込み
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
         </script>
     </body>
 </html>
