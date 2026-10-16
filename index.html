@@ -77,8 +77,14 @@
             var latLngList = []; //位置情報リスト
             var polyline = null; //経路表示の線
 
+            //地図の初期化
+            var map = L.map('map',{
+                zoom: 17, //初期ズームレベル
+                zoomControl: false // デフォルトのズームコントロールを無効化
+            });
+
             db.collection("locations")
-    .where("userId", "==", "user1") // 👈 user1のタグでフィルター！
+    .where("userId", "==", "user1") 
     .onSnapshot((snapshot) => {
         if (snapshot.empty) {
             document.getElementById("status").innerText = "位置情報が見つかりませんでした。";
@@ -133,12 +139,6 @@
             map.setView([latestLat, latestLng], 17);
         }
     });
-
-            //地図の初期化
-            var map = L.map('map',{
-                zoom: 17, //初期ズームレベル
-                zoomControl: false // デフォルトのズームコントロールを無効化
-            });
             //地図拡大縮小ボタンの位置調整
             L.control.zoom({
                 position: 'topright'
