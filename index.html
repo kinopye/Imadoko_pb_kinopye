@@ -94,7 +94,7 @@
             var currentMarker = null;
 
             // 2. user1 ドキュメントを監視して中の path 配列を取得
-            db.collection("locations").document("user1").onSnapshot((doc) => {
+            db.collection("locations").doc("user1").onSnapshot((doc) => {
                 if (!doc.exists) {
                     document.getElementById("status").innerText = "user1のデータがまだありません（アプリから送信してね）";
                     return;
