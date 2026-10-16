@@ -77,34 +77,62 @@
             var latLngList = []; //位置情報リスト
             var polyline = null; //経路表示の線
 
-            db.collection("locations").doc("user1").onSnapshot((doc) => {
-                if(doc.exists){
-                    const data = doc.data();
-                    const lat = data.latitude; //緯度
-                    const lng = data.longitude; //経度
+            db.collection("locations")
+    .where("userId", "==", "user1") // 👈 user1のタグでフィルター！
+    .onSnapshot((snapshot) => {
+        if (snapshot.empty) {
+            document.getElementById("status").innerText = "位置情報が見つかりませんでした。";
+            return;
+        }
 
-                    //届いた緯度・経度をリストに追加
-                    const newPoint = [lat, lng];
-                    latLngList.push(newPoint);
+        var docs = [];
+        snapshot.forEach((doc) => {
+            docs.push(doc.data());
+        });
 
-                    document.getElementById("status").innerText =
-                    "位置情報を受信しました！(緯度: " + lat.toFixed(4) + ",経度: " +lng.toFixed(4) + ")";
-                    polyline = L.polyline(latLngList, {color: 'red'}).addTo(map); //経路表示
+        // タイムスタンプ順（古い順）に綺麗に並び替える
+        docs.sort((a, b) => {
+            const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
+            const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
+            return timeA - timeB;
+        });
 
-                    //新しいポイントにピンを作成
-                    L.circleMarker([lat, lng],{
-                        radius: 8,
-                        fillColor: "#00bfff",
-                        color: "#ffffff",
-                        weight: 2,
-                        opacity: 0.8,
-                        fillOpacity: 0.5
-                    }).addTo(map);
-                    map.setView([lat, lng]); //地図をズーム
-                }else{
-                    document.getElementById("status").innerText = "位置情報が見つかりませんでした。";
-                }
-            })
+        var latLngList = [];
+        docs.forEach((data) => {
+            const lat = data.latitude;
+            const lng = data.longitude;
+            if (lat && lng) {
+                latLngList.push([lat, lng]);
+            }
+        });
+
+        if (latLngList.length > 0) {
+            const latest = latLngList[latLngList.length - 1];
+            const latestLat = latest[0];
+            const latestLng = latest[1];
+
+            document.getElementById("status").innerText =
+                "位置情報を受信しました！(緯度: " + latestLat.toFixed(4) + ", 経度: " + latestLng.toFixed(4) + ")";
+
+            // 既存の線をクリアして全軌跡を再描画
+            if (polyline) {
+                map.removeLayer(polyline);
+            }
+            polyline = L.polyline(latLngList, {color: 'red'}).addTo(map);
+
+            // 最新の位置にピン
+            L.circleMarker([latestLat, latestLng], {
+                radius: 8,
+                fillColor: "#00bfff",
+                color: "#ffffff",
+                weight: 2,
+                opacity: 0.8,
+                fillOpacity: 0.5
+            }).addTo(map);
+
+            map.setView([latestLat, latestLng], 17);
+        }
+    });
 
             //地図の初期化
             var map = L.map('map',{
