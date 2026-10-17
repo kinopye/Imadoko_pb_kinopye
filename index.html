@@ -139,9 +139,6 @@
                     polyline = L.polyline(latLngList, {color: 'red'}).addTo(map);
 
                     // 既存のピンをクリアして最新の位置にピンを立てる
-                    if (currentMarker) {
-                        map.removeLayer(currentMarker);
-                    }
                     currentMarker = L.circleMarker([latestLat, latestLng], {
                         radius: 8,
                         fillColor: "#00bfff",
