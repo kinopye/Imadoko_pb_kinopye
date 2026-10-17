@@ -92,11 +92,12 @@
 
             var polyline = null;
             var currentMarker = null;
+            var allMarkers = [];
 
             // 2. user1 ドキュメントを監視して中の path 配列を取得
             db.collection("locations").doc("user1").onSnapshot((doc) => {
                 if (!doc.exists) {
-                    document.getElementById("status").innerText = "user1のデータがまだありません（アプリから送信してね）";
+                    document.getElementById("status").innerText = "user1のデータがまだありません（アプリから送信が必要です）";
                     return;
                 }
 
@@ -138,16 +139,25 @@
                     }
                     polyline = L.polyline(latLngList, {color: 'red'}).addTo(map);
 
-                    // 既存のピンをクリアして最新の位置にピンを立てる
-                    currentMarker = L.circleMarker([latestLat, latestLng], {
-                        radius: 8,
-                        fillColor: "#00bfff",
-                        color: "#ffffff",
-                        weight: 2,
-                        opacity: 0.8,
-                        fillOpacity: 0.5
-                    }).addTo(map);
+                    // 既存のマーカーをクリア
+                    allMarkers.forEach(marker => map.removeLayer(m));
+                    allMarkers = [];
 
+                    pathArray.forEach((point, index) => {
+                        const pLat = point.latitude;
+                        const pLng = point.longitude;
+                        if (pLat && pLng) {
+                            const marker = L.circleMarker([pLat, pLng], {
+                                radius: 5,
+                                fillColor: "#ff0000",
+                                color: "#ffffff",
+                                weight: 1,
+                                opacity: 0.8,
+                                fillOpacity: 0.5
+                            }).addTo(map);
+                            allMarkers.push(marker);
+                        }
+                    });
                     map.setView([latestLat, latestLng], 17);
                 }
             }, (error) => {
