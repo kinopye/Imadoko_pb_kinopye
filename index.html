@@ -3,7 +3,8 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>いまどこ powered by kinopye</title>
+        <title>Imadoko Web</title>
+        <link rel="icon" type="image/png" href="Imadoko App Logo.png">
         <!--地図のCSS読み取り-->
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <style>
@@ -139,7 +140,7 @@
                     polyline = L.polyline(latLngList, {color: 'red'}).addTo(map);
 
                     // 既存のマーカーをクリア
-                    allMarkers.forEach(marker => map.removeLayer(m));
+                    allMarkers.forEach(marker => map.removeLayer(marker));
                     allMarkers = [];
 
                     pathArray.forEach((point, index) => {
