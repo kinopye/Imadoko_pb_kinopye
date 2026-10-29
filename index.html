@@ -269,6 +269,14 @@
                 font-size: 18px;
                 font-weight: bold;
                 cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .custom-btn img{
+                width: 20px;
+                height: 20px;
+                object-fit: contain;
             }
             .custom-btn:active{
                 background: #eee;
@@ -301,8 +309,12 @@
             <div id="menuContent" class="menu-content">
                 <!--拡大縮小ボタン-->
                 <div class="custom-zoom-group">
-                    <button class="custom-btn" onclick="map.zoomIn()">+</button>
-                    <button class="custom-btn" onclick="map.zoomOut()">-</button>
+                    <button class="custom-btn" onclick="map.zoomIn()">
+                        <img src="zoomin-icon.png" alt="拡大">
+                    </button>
+                    <button class="custom-btn" onclick="map.zoomOut()">
+                        <img src="zoomout-icon.png" alt="縮小">
+                    </button>
                 </div>
 
                 <!--地図切り替えボタン-->
