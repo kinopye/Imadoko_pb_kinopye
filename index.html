@@ -528,12 +528,12 @@
                             const popupContent = `<b>時間:</b> ${timeStr}<br><b>速度:</b> ${speed} km/h`;
 
                             const marker = L.circleMarker([pLat, pLng], {
-                                radius: 8,
-                                fillColor: "#00bfff",
-                                color: "#ffffff",
-                                weight: 1.5,
-                                opacity: 0.9,
-                                fillOpacity: 0.8
+                                radius: 6,
+                                fillColor: "#ffffff",
+                                color: "#00bfff",
+                                weight: 5.8,
+                                opacity: 0.75,
+                                fillOpacity: 0.9
                             }).bindPopup(popupContent).addTo(map);
                             allMarkers.push(marker);
                         }
