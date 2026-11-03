@@ -253,7 +253,9 @@
             /*ズームボタン*/
             .custom-zoom-group{
                 display: flex;
+                align-items: center;
                 gap: 6px;
+                cursor: pointer;
             }
             @media (min-width: 769px){
                 .custom-zoom-group{
@@ -288,6 +290,38 @@
                 border: none;
                 box-shadow: none;
                 background: transparent;
+            }
+
+            /*吹き出しの調整*/
+            .leaflet-popup-content{
+                font-size: 15px !important;
+                line-height: 1.6 !important;
+            }
+            .menu-icon-btn{
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                cursor: pointer;
+                /*ボタン本体*/
+                width: 36px;
+                height: 36px;
+                border: 1px solid #ccc;
+                background: #fff;
+                border-radius: 6px;
+                font-size: 18px;
+                font-weight: bold;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .menu-icon-btn img{
+                width: 20px;
+                height: 20px;
+                object-fit: contain;
+            }
+            .menu-icon-btn:active{
+                background: #eee;
             }
         </style>
     </head>
@@ -338,6 +372,9 @@
                         </label>
                     </div>
                 </div>
+                <button id="moveToMeBtn" class="menu-icon-btn" disabled style="opacity: 0.5; cursor: not-allowed;">
+                    <img src="location-icon.png" alt="現在地へ">
+                </button>
             </div>
         </div>
         <!-- 地図表示エリア -->
@@ -419,6 +456,8 @@
             var polyline = null;
             var currentMarker = null;
             var allMarkers = [];
+            let latestLat = null;
+            let letestLng = null;
 
             // user1 ドキュメントを監視して中の path 配列を取得
             db.collection("locations").doc("user1").onSnapshot((doc) => {
@@ -453,11 +492,16 @@
 
                 if (latLngList.length > 0) {
                     const latest = latLngList[latLngList.length - 1];
-                    const latestLat = latest[0];
-                    const latestLng = latest[1];
+                    latestLat = latest[0];
+                    latestLng = latest[1];
 
                     document.getElementById("status").innerText =
                         "位置情報を受信しました！(緯度: " + latestLat.toFixed(4) + ", 経度: " + latestLng.toFixed(4) + ")";
+
+                        const moveBtn = document.getElementById("moveToMeBtn");
+                        moveBtn.removeAttribute("disabled");
+                        moveBtn.style.opacity = "1";
+                        moveBtn.style.cursor = "pointer";
 
                     // 既存の線をクリアして全軌跡を再描画
                     if (polyline) {
@@ -470,9 +514,19 @@
                     allMarkers = [];
 
                     pathArray.forEach((point, index) => {
+                        //時間情報
+                        const timestamp = point.timestamp ? point.timestamp.toDate() : null;
+                        const timeStr = timestamp ? timestamp.toLocaleTimeString() : "不明";
+                        //緯度経度の情報
                         const pLat = point.latitude;
                         const pLng = point.longitude;
                         if (pLat && pLng) {
+                            const timestamp = point.timestamp ? point.timestamp.toDate() : null;
+                            const timeStr = timestamp ? timestamp.toLocaleTimeString() : "不明";
+                            const speed = point.speed !== undefined ? point.speed.toFixed(1) : "0.0";
+
+                            const popupContent = `<b>時間:</b> ${timeStr}<br><b>速度:</b> ${speed} km/h`;
+
                             const marker = L.circleMarker([pLat, pLng], {
                                 radius: 6,
                                 fillColor: "#00bfff",
@@ -480,7 +534,7 @@
                                 weight: 1.5,
                                 opacity: 0.9,
                                 fillOpacity: 0.8
-                            }).addTo(map);
+                            }).bindPopup(popupContent).addTo(map);
                             allMarkers.push(marker);
                         }
                     });
@@ -489,6 +543,14 @@
             }, (error) => {
                 document.getElementById("status").innerText = "エラー: " + error.message;
                 console.error(error);
+            });
+            document.getElementById("moveToMeBtn").addEventListener("click", function() {
+                if(latestLat !== null && latestLng !== null) {
+                    map.panTo([latestLat, latestLng], {
+                        animate: true,
+                        duration: 0.8
+                    });
+                }
             });
         </script>
     </body>
