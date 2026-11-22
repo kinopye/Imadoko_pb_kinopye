@@ -323,6 +323,37 @@
             .menu-icon-btn:active{
                 background: #eee;
             }
+            /*最新位置のピン（Google Map風）*/
+            .google-location-pin {
+                position: relative;
+                width: 40px;
+                height: 46px;
+                filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.35));
+            }
+            .google-location-pin::before {
+                content: "";
+                position: absolute;
+                width: 32px;
+                height: 32px;
+                left: 4px;
+                top: 0;
+                background: #446cad;
+                border: 3px solid #FFFFFF;
+                border-radius: 50% 50% 50% 0;
+                transform: rotate(-45deg);
+                box-sizing: border-box;
+            }
+            .google-location-pin::after {
+                content: "";
+                position: absolute;
+                width: 10px;
+                height: 10px;
+                left: 15px;
+                top: 11px;
+                background: #FFFFFF;
+                border-radius: 50%;
+                z-index: 2;
+            }
         </style>
     </head>
     <body>
@@ -457,7 +488,7 @@
             var currentMarker = null;
             var allMarkers = [];
             let latestLat = null;
-            let letestLng = null;
+            let latestLng = null;
 
             // user1 ドキュメントを監視して中の path 配列を取得
             db.collection("locations").doc("user1").onSnapshot((doc) => {
@@ -482,11 +513,11 @@
                 });
 
                 let latLngList = [];
-                pathArray.forEach((point) => {
-                    const lat = point.latitude;
-                    const lng = point.longitude;
-                    if (lat && lng) {
-                        latLngList.push([lat, lng]);
+                let latestIndex = -1;
+                pathArray.forEach((point, index) => {
+                    if (point.latitude && point.longitude) {
+                        latLngList.push([point.latitude, point.longitude]);
+                        latestIndex = index;
                     }
                 });
 
@@ -514,31 +545,48 @@
                     allMarkers = [];
 
                     pathArray.forEach((point, index) => {
-                        //時間情報
                         const timestamp = point.timestamp ? point.timestamp.toDate() : null;
                         const timeStr = timestamp ? timestamp.toLocaleTimeString() : "不明";
-                        //緯度経度の情報
                         const pLat = point.latitude;
                         const pLng = point.longitude;
                         if (pLat && pLng) {
-                            const timestamp = point.timestamp ? point.timestamp.toDate() : null;
-                            const timeStr = timestamp ? timestamp.toLocaleTimeString() : "不明";
                             const speed = point.speed !== undefined ? point.speed.toFixed(1) : "0.0";
-
                             const popupContent = `<b>時間:</b> ${timeStr}<br><b>速度:</b> ${speed} km/h`;
+                            const isLatest = index === latestIndex;
+                            let marker;
 
-                            const marker = L.circleMarker([pLat, pLng], {
-                                radius: 6,
-                                fillColor: "#ffffff",
-                                color: "#00bfff",
-                                weight: 5.8,
-                                opacity: 0.75,
-                                fillOpacity: 0.9
-                            }).bindPopup(popupContent).addTo(map);
+                            if (isLatest) {
+                                const latestIcon = L.divIcon({
+                                    className: "",
+                                    html: '<div class="google-location-pin"></div>',
+                                    iconSize: [40, 46],
+                                    iconAnchor: [20, 46]
+                                });
+                                marker = L.marker([pLat, pLng], {
+                                    icon: latestIcon,
+                                    zIndexOffset: 1000
+                                }).bindPopup(`<b>【いまここ】</b><br>${popupContent}`, {
+                                    offset: L.point(0, -46)
+                                });
+                                currentMarker = marker;
+                            } else {
+                                marker = L.circleMarker([pLat, pLng], {
+                                    radius: 6,
+                                    fillColor: "#ffffff",
+                                    color: "#00bfff",
+                                    weight: 5.8,
+                                    opacity: 0.75,
+                                    fillOpacity: 0.9
+                                }).bindPopup(popupContent);
+                            }
+                            marker.addTo(map);
                             allMarkers.push(marker);
                         }
                     });
                     map.setView([latestLat, latestLng], 17);
+                    if (currentMarker) {
+                        currentMarker.openPopup();
+                    }
                 }
             }, (error) => {
                 document.getElementById("status").innerText = "エラー: " + error.message;
